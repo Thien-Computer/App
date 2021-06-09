@@ -120,7 +120,7 @@ CREATE TABLE `doanduong` (
   `id_gl2` varchar(10) NOT NULL,
   `id_cd` varchar(10) NOT NULL,
   `stt` int NOT NULL,
-  `length` float(5,2) DEFAULT NULL,
+  `length` DECIMAL(6,2) DEFAULT NULL,
   KEY `fk_gl1` (`id_gl1`),
   KEY `fk_gl2` (`id_gl2`),
   KEY `fk_cd` (`id_cd`),
@@ -212,8 +212,8 @@ DROP TABLE IF EXISTS `giaolo`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `giaolo` (
   `id_gl` varchar(6) NOT NULL DEFAULT '0',
-  `l_at` float(10,6) NOT NULL,
-  `l_ong` float(10,6) NOT NULL,
+  `l_at` DECIMAL(10,3) NOT NULL,
+  `l_ong` DECIMAL(10,3) NOT NULL,
   PRIMARY KEY (`id_gl`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -490,7 +490,7 @@ DROP TABLE IF EXISTS `ve`;
 CREATE TABLE `ve` (
   `id_ve` varchar(16) NOT NULL,
   `loai_ve` int NOT NULL,
-  `gia_ve` int NOT NULL,
+  `gia_ve` int ,
   `buy_at` datetime DEFAULT NULL,
   `id_hanhkhach` varchar(8) NOT NULL,
   PRIMARY KEY (`id_ve`),

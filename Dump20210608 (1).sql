@@ -4,8 +4,7 @@
 -- ------------------------------------------------------
 -- Server version	8.0.23
 
-DROP SCHEMA IF EXISTS `ass2`;
-CREATE SCHEMA ass2;
+use ass2;
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -532,20 +531,20 @@ DELIMITER ;;
     select gia_xebus,day_in_week,day_last_week,month_one into mot,hai,ba,bon
     from banggia;
 	 if (loai=1) then 
-		 set new.gia_ve = bon; 
+
          set key_ve = 'M';
 		elseif (loai=2 and DAYNAME(now())= 'Sunday') then 
-		 set new.gia_ve = ba;
+
          set key_ve = 'D';
          elseif (loai=2 ) then 
-		 set new.gia_ve = hai;
+
           set key_ve = 'D';
 		else 
-		 set new.gia_ve = mot;
+
          set key_ve = 'O';
     end if ;
-     set new.buy_at = DATE_FORMAT( CURRENT_TIMESTAMP(),'%Y-%m-%d %H:%i:%s');
-     set new.id_ve =  concat('V',key_ve,DATE_FORMAT( CURRENT_TIMESTAMP(),'%d%m%Y%H%i%s'));
+	 set new.buy_at = CURRENT_TIMESTAMP();
+     set new.id_ve =  concat('V',key_ve,DATE_FORMAT( new.buy_at,'%d%m%Y%H%i%s'));
    END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -966,7 +965,7 @@ BEGIN
 	DECLARE giave INT;
     DECLARE ngaymua DATETIME;
     
-    SELECT buy_at INTO ngaymua WHERE NEW.id_ve = id_ve;
+    SELECT buy_at INTO ngaymua FROM ve WHERE NEW.id_ve = id_ve;
     IF(DAYOFWEEK(ngaymua)=1 OR DAYOFWEEK(ngaymua)=7) THEN
 		SELECT day_last_week INTO giave FROM banggia;
 	ELSE

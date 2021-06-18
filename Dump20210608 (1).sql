@@ -4,6 +4,10 @@
 -- ------------------------------------------------------
 -- Server version	8.0.23
 
+DROP SCHEMA IF EXISTS `ass2`;
+CREATE SCHEMA ass2;
+
+
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -516,7 +520,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_giave` BEFORE INSERT ON `ve` FOR EACH ROW BEGIN
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER ass2.update_tt_ve BEFORE INSERT ON `ve` FOR EACH ROW BEGIN
    DECLARE loai int  ; 
     DECLARE mot int  ;  
     DECLARE hai int  ; 
@@ -901,4 +905,156 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+DROP TRIGGER IF EXISTS update_giave_le; 
+
+DELIMITER $$
+CREATE TRIGGER update_giave_le
+BEFORE INSERT ON vele
+FOR EACH ROW
+BEGIN
+	DECLARE so_gatram_dung INT DEFAULT 0; 
+    DECLARE gatramlen VARCHAR(7);
+    DECLARE gatramxuong VARCHAR(7);
+	DECLARE tau_or_bus INT;
+    DECLARE ma_tuyen VARCHAR(4);
+	DECLARE dongia_tuyentau INT DEFAULT 0;
+    DECLARE dongiatau INT DEFAULT 0;
+    DECLARE dongia_bus INT DEFAULT 0;
+    DECLARE hanhkhachid varchar(8);
+    DECLARE giave INT;
+
+	SET ma_tuyen = NEW.id_tuyen;
+    
+    IF EXISTS(SELECT id_tuyen FROM tuyenbus WHERE ma_tuyen = id_tuyen) THEN 
+		SET tau_or_bus = 1;
+		SET gatramlen = NEW.id_gatram_len;
+        SET gatramxuong = NEW.id_gatram_xuong;
+        SET so_gatram_dung = ABS((SELECT stt_tramdung FROM ghe_gas_tram WHERE id_tuyen=ma_tuyen AND id_gatram=gatramlen LIMIT 1) -
+							     (SELECT stt_tramdung FROM ghe_gas_tram WHERE id_tuyen=ma_tuyen AND id_gatram=gatramxuong LIMIT 1));
+	 ELSEIF EXISTS(SELECT id_tuyen FROM tuyentau WHERE matuyen = id_tuyen) THEN
+		SET tau_or_bus = 0;
+		SELECT dongia INTO dongia_tuyentau FROM tuyentau WHERE id_tuyen = ma_tuyen;
+        SET gatramlen = NEW.id_gatram_len;
+        SET gatramxuong = NEW.id_gatram_xuong;
+        SET so_gatram_dung = ABS((SELECT stt_tramdung FROM ghe_gas_tram WHERE id_tuyen=ma_tuyen AND id_gatram=gatramlen LIMIT 1) -
+							     (SELECT stt_tramdung FROM ghe_gas_tram WHERE id_tuyen=ma_tuyen AND id_gatram=gatramxuong LIMIT 1));
+	END IF;
+	 -- gia bus 
+    IF (tau_or_bus = 1) THEN
+		SELECT gia_xebus INTO dongia_bus FROM banggia;
+        SET giave = dongia_bus * CEILING(so_gatram_dung/2);
+	-- gia tau 
+    ELSEIF (tau_or_bus = 0) THEN
+		SET giave = dongia_tuyentau * CEILING(so_gatram_dung/2);
+	END IF;
+	
+    UPDATE ve
+    SET `ve`.`gia_ve` = giave
+    WHERE id_ve = NEW.id_ve;   
+
+
+END$$ 
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS ass2.update_giave_ngay;
+
+DELIMITER $$
+CREATE TRIGGER update_giave_ngay
+BEFORE INSERT ON ve_1ngay
+FOR EACH ROW
+BEGIN
+	DECLARE giave INT;
+    DECLARE ngaymua DATETIME;
+    
+    SELECT buy_at INTO ngaymua WHERE NEW.id_ve = id_ve;
+    IF(DAYOFWEEK(ngaymua)=1 OR DAYOFWEEK(ngaymua)=7) THEN
+		SELECT day_last_week INTO giave FROM banggia;
+	ELSE
+		SELECT day_in_week INTO giave FROM banggia;
+	END IF;
+    
+    UPDATE ve
+    SET gia_ve = giave
+    WHERE NEW.id_ve = id_ve;
+END$$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS update_giavethang;
+
+DELIMITER $$
+CREATE TRIGGER update_giavethang
+BEFORE INSERT ON ass2.vethang
+FOR EACH ROW
+BEGIN
+	DECLARE so_gatram_dung INT DEFAULT 0; 
+    DECLARE gatramlen VARCHAR(7);
+    DECLARE gatramxuong VARCHAR(7);
+	DECLARE tau_or_bus INT;
+    DECLARE matuyen VARCHAR(4);
+	DECLARE dongia_tuyentau INT DEFAULT 0;
+    DECLARE dongiatau INT DEFAULT 0;
+    DECLARE dongia_bus INT DEFAULT 0;
+    DECLARE hanhkhachid varchar(8);
+    DECLARE giave INT DEFAULT 0;
+    DECLARE nghenghiep varchar (50);
+    DECLARE ngaymua DATETIME;
+    DECLARE ngaymua_vetruocdo DATETIME;
+    DECLARE tram1 INT;
+    DECLARE tram2 INT;
+    
+    SET matuyen = NEW.id_tuyen;
+    
+    INSERT INTO debug(val2) value (matuyen);
+    -- bus
+    IF EXISTS(SELECT id_tuyen FROM tuyenbus WHERE id_tuyen=matuyen) THEN 
+		SET tau_or_bus = 1;
+        SET gatramlen = NEW.id_gatram1;
+        SET gatramxuong = NEW.id_gatram2;
+		SELECT stt_tramdung INTO tram1 FROM ghe_gas_tram WHERE id_tuyen=matuyen AND id_gatram=gatramlen LIMIT 1;
+        SELECT stt_tramdung INTO tram2 FROM ghe_gas_tram WHERE id_tuyen=matuyen AND id_gatram=gatramxuong LIMIT 1;
+		SET so_gatram_dung = ABS(tram1 - tram2);
+	-- tau
+    ELSEIF EXISTS(SELECT id_tuyen FROM tuyentau WHERE matuyen = id_tuyen) THEN
+		SET tau_or_bus = 0;
+		SELECT dongia INTO dongia_tuyentau FROM tuyentau WHERE matuyen=id_tuyen;
+		SET gatramlen = NEW.id_gatram1;
+        SET gatramxuong = NEW.id_gatram2;
+        SELECT stt_tramdung INTO tram1 FROM ghe_gas_tram WHERE id_tuyen=matuyen AND id_gatram=gatramlen LIMIT 1;
+        SELECT stt_tramdung INTO tram2 FROM ghe_gas_tram WHERE id_tuyen=matuyen AND id_gatram=gatramxuong LIMIT 1;
+		SET so_gatram_dung = ABS(tram1 - tram2);
+
+	END IF;
+    -- gia bus thang
+    IF (tau_or_bus = 1) THEN
+		SELECT gia_xebus INTO dongia_bus FROM banggia;
+        SET giave = dongia_bus * CEILING(so_gatram_dung/2) * 20 * 2;
+	-- gia tau thang
+    ELSEIF (tau_or_bus = 0) THEN
+		SET giave = dongia_tuyentau * CEILING(so_gatram_dung/2) * 20 * 2;
+	END IF;
+    
+    -- hoc sinh giam 50%
+    SELECT id_hanhkhach INTO hanhkhachid FROM ve WHERE id_ve=NEW.id_ve;
+    SELECT job INTO nghenghiep FROM hanhkhach WHERE id_hanhkhach = hanhkhachid;
+    
+     IF (LOWER(nghenghiep) = 'sinh vien') THEN
+ 		SET giave = giave/2;
+ 	ELSE 
+     -- trong mô tả bài tậpp lớn 2 không có nói phần cột chỉ ngày bắt đầu sử dụng vé tháng, nên assume là ngày bắt đầu sử dụng là ngày mua
+ 		SELECT buy_at INTO ngaymua FROM ve WHERE NEW.id_ve = ve.id_ve;
+         IF EXISTS (SELECT buy_at FROM ve 
+         WHERE buy_at != ngaymua AND id_hanhkhach =hanhkhachid  AND DATEDIFF(ngaymua, buy_at) <= 20) THEN
+ 			SET giave = giave - 10/100 * giave;
+ 		END IF;
+ 	END IF;
+    
+	UPDATE ve
+    SET gia_ve = giave
+    WHERE id_ve = NEW.id_ve;   
+
+END$$
+DELIMITER ;
+
 -- Dump completed on 2021-06-08  9:43:18
+
+

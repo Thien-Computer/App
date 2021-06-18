@@ -1003,7 +1003,6 @@ BEGIN
     
     SET matuyen = NEW.id_tuyen;
     
-    INSERT INTO debug(val2) value (matuyen);
     -- bus
     IF EXISTS(SELECT id_tuyen FROM tuyenbus WHERE id_tuyen=matuyen) THEN 
 		SET tau_or_bus = 1;
